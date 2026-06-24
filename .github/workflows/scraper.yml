@@ -1,0 +1,37 @@
+name: AURA Tracker Serverless CronJob
+
+on:
+  schedule:
+    # Espressione Cron per girare ogni 14 giorni (il 1° e il 15° giorno di ogni mese) alle 12:00 UTC
+    - cron: '0 12 1,15 * *'
+  workflow_dispatch: # Questo vi permette di avviare lo scraper a mano cliccando un bottone per fare i test davanti ai professori
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write # Permesso fondamentale per permettere a GitHub di modificare e salvare i dati nel CSV
+
+    steps:
+      - name: 1. Isolamento Ambiente e Download Codice
+        uses: actions/checkout@v3
+
+      - name: 2. Inizializzazione Ambiente Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 3. Installazione Dipendenze (Requests & BeautifulSoup)
+        run: pip install -r requirements.txt
+
+      - name: 4. Esecuzione dello Scraper sui 3 Prodotti
+        run: python scraper.py
+
+      - name: 5. Salvataggio automatico del file CSV aggiornato su GitHub
+        run: |
+          git config --local user.email "bot@github.com"
+          git config --local user.name "AURA Automated Bot"
+          git add prezzi.csv
+          git commit -m "Autocommit: Estrazione dati periodica" || exit 0
+          git push
