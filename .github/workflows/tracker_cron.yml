@@ -11,27 +11,33 @@ jobs:
     runs-on: ubuntu-latest
     
     permissions:
-      contents: write
+      contents: write # Permesso di scrittura obbligatorio
 
     steps:
       - name: 1. Isolamento Ambiente e Download Codice
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 2. Inizializzazione Ambiente Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
       - name: 3. Installazione Dipendenze (Requests & BeautifulSoup)
         run: pip install -r requirements.txt
 
-      - name: 4. Esecuzione dello Scraper sui 3 Prodotti
+      - name: 4. Esecuzione dello Scraper sui Prodotti
         run: python scraper.py
 
-      - name: 5. Salvataggio automatico del file CSV aggiornato su GitHub
+      - name: 5. Salvataggio automatico intelligente su GitHub
         run: |
           git config --local user.email "bot@github.com"
           git config --local user.name "AURA Automated Bot"
           git add prezzi.csv
-          git commit -m "Autocommit: Estrazione dati periodica" || exit 0
-          git push
+          
+          # Controllo intelligente: se non ci sono modifiche reali nel CSV, evita di fare il push ed evita l'errore
+          if git diff --staged --quiet; then
+            echo "Nessun nuovo prezzo rilevato o file identico. Salto il salvataggio."
+          else
+            git commit -m "Autocommit: Estrazione dati periodica"
+            git push
+          fi
