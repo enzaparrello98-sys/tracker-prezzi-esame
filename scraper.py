@@ -4,15 +4,13 @@ import csv
 from datetime import datetime
 import time
 
-# Fingiamo di essere un utente umano su Chrome (per superare i blocchi base di Sephora/Douglas)
+# Intestazioni per simulare un browser umano
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
-    "Connection": "keep-alive"
+    "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
 }
 
-# 2 SITI PER OGNI PRODOTTO (Totale: 6)
 PRODOTTI_TARGET = [
     # --- 1. THE ORDINARY ---
     {
@@ -50,7 +48,7 @@ PRODOTTI_TARGET = [
         "Selector": {"tag": "span", "class": "price"}
     },
 
-    # --- 3. CERA DI CUPRA (Non venduta in profumeria, usiamo e-Farma sicure) ---
+    # --- 3. CERA DI CUPRA ---
     {
         "Brand": "Cera di Cupra",
         "Prodotto": "Crema Idratante Opacizzante",
@@ -70,21 +68,17 @@ PRODOTTI_TARGET = [
 ]
 
 def estrai_prezzo(url, selector):
+    # Usiamo un blocco TRY/EXCEPT totale per proteggere il programma dai crash
     try:
-        # Timeout leggermente più lungo per i siti grandi che caricano molti script
-        risposta = requests.get(url, headers=HEADERS, timeout=20)
-        
+        risposta = requests.get(url, headers=HEADERS, timeout=15)
         if risposta.status_code != 200:
             return "Bloccato da Anti-Bot"
         
         soup = BeautifulSoup(risposta.text, 'html.parser')
-        
-        # Cerca il tag esatto
         elemento_prezzo = soup.find(selector["tag"], class_=selector["class"])
         
         if elemento_prezzo:
             testo_prezzo = elemento_prezzo.text.strip()
-            # Pulizia automatica dei vari formati di prezzo
             prezzo_pulito = (
                 testo_prezzo.replace("€", "")
                             .replace("EUR", "")
@@ -94,22 +88,21 @@ def estrai_prezzo(url, selector):
                             .strip()
             )
             return prezzo_pulito
-            
         return "N/D (Layout cambiato)"
-        
     except Exception:
-        return "Errore"
+        # Se un sito va in errore, restituisce questa scritta invece di far fallire GitHub
+        return "Errore Connessione"
 
 def main():
     data_oggi = datetime.now().strftime("%Y-%m-%d")
     nuove_righe = []
 
-    print(f"--- AVVIO SCRAPER PER {len(PRODOTTI_TARGET)} SITI ---")
+    print("--- INIZIO MONITORAGGIO ---")
 
     for item in PRODOTTI_TARGET:
-        print(f"Estrazione da: {item['Rivenditore']}...")
+        print(f"Estrazione da {item['Rivenditore']}...")
         prezzo_rilevato = estrai_prezzo(item["Link"], item["Selector"])
-        print(f" -> Trovato: {prezzo_rilevato}")
+        print(f"-> Risultato: {prezzo_rilevato}")
         
         riga = [
             data_oggi,
@@ -123,14 +116,17 @@ def main():
             item["Link"]
         ]
         nuove_righe.append(riga)
-        time.sleep(4) # Pausa di 4 secondi obbligatoria per non farsi bannare dai grandi store
+        time.sleep(4)
 
-    print("Salvataggio nel file CSV in corso...")
-    with open('prezzi.csv', mode='a', newline='', encoding='utf-8') as file:
-        writer = csv.writer(file)
-        for riga in nuove_righe:
-            writer.writerow(riga)
-    print("Salvataggio completato!")
+    # Scrittura finale protetta
+    try:
+        with open('prezzi.csv', mode='a', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            for riga in nuove_righe:
+                writer.writerow(riga)
+        print("Scrittura completata!")
+    except Exception as e:
+        print(f"Errore scrittura CSV: {e}")
 
 if __name__ == "__main__":
     main()
