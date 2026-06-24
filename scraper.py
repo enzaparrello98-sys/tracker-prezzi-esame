@@ -9,9 +9,8 @@ HEADERS = {
     "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7"
 }
 
-# LISTA AMPLIATA: Puoi aggiungere quanti blocchi vuoi qui dentro seguendo lo stesso schema!
+# Elenco completo dei 6 rivenditori pilota
 PRODOTTI_TARGET = [
-    # --- THE ORDINARY ---
     {
         "Brand": "The Ordinary",
         "Prodotto": "Niacinamide 10% + Zinc 1%",
@@ -20,7 +19,6 @@ PRODOTTI_TARGET = [
         "Link": "https://profumeriegaleazzi.it/products/niacinamide-10-zinc-1?variant=55978556260725",
         "Selector": {"tag": "span", "class": "price-item--sale"}
     },
-    # --- CERAVE ---
     {
         "Brand": "CeraVe",
         "Prodotto": "Detergente Idratante",
@@ -29,14 +27,13 @@ PRODOTTI_TARGET = [
         "Link": "https://www.xfarma.it/it/cerave-detergente-idratante-viso-pelle-da-normale-a-secca-i-acido-ialuronico-e-ceramidi-473ml.html",
         "Selector": {"tag": "span", "class": "price"}
     },
-    # --- CERA DI CUPRA ---
     {
         "Brand": "Cera di Cupra",
         "Prodotto": "Crema Idratante Opacizzante Per Pelli Miste O Grasse",
         "Formato": "50ml",
         "Rivenditore": "Filgi Store",
         "Link": "https://www.filgistore.it/it/creme-viso/4848-cera-di-cupra-ricette-di-miele-crema-idratante-opacizzante-pelli-miste-o-grasse-50-ml-8002140055508.html",
-        "Selector": {"tag": "span", "class": "product-price"} # AGGIORNATO selettore per Filgi
+        "Selector": {"tag": "span", "class": "product-price"}
     },
     {
         "Brand": "Cera di Cupra",
@@ -84,15 +81,19 @@ def estrai_prezzo(url, selector):
             )
             return prezzo_pulito
         return "N/D"
-    except Exception:
-        return "Errore"
+    except Exception as e:
+        return f"Errore: {str(e)}"
 
 def main():
     data_oggi = datetime.now().strftime("%Y-%m-%d")
     nuove_righe = []
 
+    print(f"Avvio estrazione per {len(PRODOTTI_TARGET)} siti...")
+
     for item in PRODOTTI_TARGET:
+        print(f"Controllo in corso su: {item['Rivenditore']}...")
         prezzo_rilevato = estrai_prezzo(item["Link"], item["Selector"])
+        print(f"-> Trovato valore: {prezzo_rilevato}")
         
         riga = [
             data_oggi,
@@ -106,12 +107,14 @@ def main():
             item["Link"]
         ]
         nuove_righe.append(riga)
-        time.sleep(3) # Pausa防ban
+        time.sleep(3) # Pausa di sicurezza tra i siti
 
+    print("Scrittura nel file prezzi.csv...")
     with open('prezzi.csv', mode='a', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         for riga in nuove_righe:
             writer.writerow(riga)
+    print("Salvataggio completato correttamente!")
 
 if __name__ == "__main__":
     main()
